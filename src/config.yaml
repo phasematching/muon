@@ -1,0 +1,63 @@
+# Red Pitaya Coincidence Detector Configuration
+# ============================================
+
+# Red Pitaya connection settings
+red_pitaya:
+  # IP address of your Red Pitaya
+  # Find it using: ping rp-xxxxxx.local
+  # Or check your router's DHCP leases
+  ip_address: "192.168.1.100"  # CHANGE THIS to your Red Pitaya's IP
+
+  # SCPI port (default is 5000, don't change unless necessary)
+  port: 5000
+
+  # Connection timeout in seconds
+  timeout: 5.0
+
+# Data acquisition settings
+acquisition:
+  # Decimation factor (1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536)
+  # Higher decimation = slower sampling rate but longer buffer duration
+  # Decimation 8 gives ~15.6 MS/s, buffer duration ~1 ms
+  decimation: 8
+
+  # Buffer size (samples to acquire per trigger)
+  # Default Red Pitaya buffer is 16384 samples
+  buffer_size: 16384
+
+  # Voltage range (±1V max for Red Pitaya)
+  voltage_range: 1.0
+
+# Pulse detection settings
+detection:
+  # Voltage threshold for channel A (IN1)
+  # Typical scintillator+PMT outputs: 50-500 mV pulses
+  # Start with 100 mV and adjust based on your signals
+  threshold_a: 0.1  # Volts
+
+  # Voltage threshold for channel B (IN2)
+  threshold_b: 0.1  # Volts
+
+  # Coincidence time window in microseconds
+  # For cosmic ray muons with ~10 cm detector separation:
+  # - Muon velocity ~0.99c → ~0.3 ns/cm
+  # - Add electronics jitter and PMT timing spread
+  # - Typical window: 1-10 µs
+  coincidence_window_us: 2.0
+
+# Display settings
+display:
+  # How often to update display (seconds)
+  # Lower values = more frequent updates but higher CPU usage
+  update_interval: 1.0
+
+# Notes:
+# ------
+# - Adjust thresholds based on your detector signal levels
+# - Too low threshold → noise triggers
+# - Too high threshold → miss real events
+# - Coincidence window should be:
+#   - Wide enough to catch real coincidences
+#   - Narrow enough to reject random coincidences
+# - Random coincidence rate ≈ R_A × R_B × 2 × window
+#   (where R_A, R_B are single channel rates)

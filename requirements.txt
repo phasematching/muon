@@ -1,0 +1,26 @@
+# Python dependencies for Red Pitaya Coincidence Detector
+# ========================================================
+#
+# Installation on Red Pitaya:
+#   pip3 install -r requirements.txt
+#
+# Or install individually:
+#   pip3 install numpy PyYAML
+
+# NumPy - numerical computing for signal processing
+# Usually pre-installed on Red Pitaya OS
+numpy>=1.19.0
+
+# PyYAML - YAML configuration file parsing
+PyYAML>=5.3.0
+
+# Optional dependencies for advanced features
+# --------------------------------------------
+
+# Matplotlib - for plotting and visualization (large dependency)
+# Uncomment if you want to add real-time plotting
+# matplotlib>=3.3.0
+
+# SciPy - for advanced signal processing
+# Uncomment if you want to add filtering, FFT, etc.
+# scipy>=1.5.0
