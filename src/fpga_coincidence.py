@@ -8,6 +8,15 @@ for high-precision timing (<10 ns resolution).
 This module interfaces with custom FPGA logic programmed into the Red Pitaya
 to perform real-time coincidence detection at the hardware level.
 
+FPGA RTL Implementation:
+    The complete Verilog RTL implementation is available in the fpga/ directory:
+    - fpga/rtl/coincidence_detector.v - Top-level module
+    - fpga/rtl/threshold_detector.v - Threshold comparators
+    - fpga/rtl/coincidence_logic.v - Coincidence window logic
+    - fpga/rtl/axi_lite_regs.v - AXI register interface
+
+    See fpga/README.md for build instructions and documentation.
+
 Author: Muon Detection Project
 License: MIT
 """

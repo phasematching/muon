@@ -242,15 +242,50 @@ exit
 
 For advanced users requiring high-precision timing (<10 ns resolution), you can enable FPGA-based coincidence detection.
 
+### Complete FPGA Implementation Available
+
+This project now includes a complete FPGA implementation in the `fpga/` directory with:
+- ✓ Verilog RTL modules for coincidence detection
+- ✓ AXI-Lite register interface for software control
+- ✓ Simulation testbench with verification
+- ✓ Build scripts for Icarus Verilog and Vivado
+- ✓ Comprehensive documentation
+
+See [`fpga/README.md`](fpga/README.md) for complete FPGA documentation.
+
 ### Requirements
 
-1. Custom FPGA bitstream with coincidence detection logic
-2. FPGA development tools (Vivado or Red Pitaya build system)
-3. Knowledge of FPGA programming (Verilog/VHDL)
+1. **For Simulation** (testing without hardware):
+   - Icarus Verilog (`iverilog`) - Free, open-source
+   - GTKWave (optional, for waveform viewing)
+
+2. **For Synthesis** (building bitstream):
+   - Xilinx Vivado (2019.1 or later)
+   - Red Pitaya development environment
+
+3. **For Deployment**:
+   - Red Pitaya board with network access
+   - Knowledge of FPGA programming (Verilog/VHDL)
+
+### Quick Start - Test in Simulation
+
+Verify the FPGA logic without hardware:
+
+```bash
+cd fpga
+make sim
+```
+
+This runs a complete testbench that verifies threshold detection, coincidence logic, and register interface.
+
+View the waveform:
+```bash
+gtkwave build/tb_coincidence_detector.vcd
+```
 
 ### Configuration
 
-To enable FPGA mode, edit `config.yaml`:
+To enable FPGA mode, edit `src/config.yaml`:
 
 ```yaml
 detection:
@@ -260,37 +295,59 @@ detection:
   coincidence_window_us: 0.1  # Can use much smaller windows in FPGA mode (100 ns)
 ```
 
-### Implementation Steps
+### Building the Bitstream
 
-1. **Design FPGA Logic**: Create Verilog/VHDL modules for:
-   - Dual-channel ADC interface (14-bit, 125 MS/s)
-   - Threshold comparators for each channel
-   - Coincidence detection logic with programmable window
-   - Event counters and AXI/memory-mapped register interface
+#### Step 1: Run Synthesis
 
-2. **Register Map**: Implement memory-mapped registers:
-   - Control register (start/stop, reset)
-   - Threshold registers (Channel A, Channel B)
-   - Coincidence window register (in FPGA clock cycles)
-   - Counter registers (events A, events B, coincidences)
+```bash
+cd fpga
+make synth
+```
 
-3. **Build Bitstream**: Compile your design using Vivado or Red Pitaya build tools
+This creates a Vivado project and runs synthesis. Check resource usage and timing in the generated reports.
 
-4. **Load to Red Pitaya**: Upload bitstream using FPGA manager
+#### Step 2: Implementation and Bitstream Generation
 
-5. **Test**: Run the detector with `mode: "fpga"` in config.yaml
+Open the Vivado GUI:
+```bash
+cd fpga/build
+vivado coincidence_detector.xpr
+```
 
-### FPGA Implementation Reference
+Then:
+1. Click "Run Implementation"
+2. Wait for completion
+3. Click "Generate Bitstream"
 
-The FPGA detector interface is defined in `src/fpga_coincidence.py`. Key specifications:
+#### Step 3: Integration with Red Pitaya
 
-- **FPGA Clock**: 125 MHz (8 ns period)
-- **ADC Resolution**: 14-bit
-- **Voltage Range**: ±1V
-- **Timing Resolution**: ~8 ns minimum
-- **Typical Coincidence Window**: 10-1000 ns (adjustable)
+The coincidence detector must be integrated into the complete Red Pitaya FPGA design:
 
-For detailed FPGA implementation guidance, see the documentation in `src/fpga_coincidence.py`.
+1. Clone the Red Pitaya FPGA repository
+2. Add the coincidence detector module to the design
+3. Connect to ADC inputs and ARM processor interface
+4. Assign AXI base address in the memory map
+5. Build the complete Red Pitaya bitstream
+
+Detailed instructions: See [`fpga/README.md`](fpga/README.md)
+
+#### Step 4: Load Bitstream
+
+```bash
+# Copy to Red Pitaya
+scp coincidence_detector.bit root@<red-pitaya-ip>:/root/
+
+# SSH and load
+ssh root@<red-pitaya-ip>
+cat /root/coincidence_detector.bit > /dev/xdevcfg
+```
+
+#### Step 5: Run with FPGA Mode
+
+```bash
+cd /root/muon
+python3 coincidence_detector.py  # Will use FPGA mode if configured
+```
 
 ### Advantages of FPGA Mode
 
@@ -335,6 +392,19 @@ muon/
 │   ├── coincidence_detector.py  # Main detection script (software mode)
 │   ├── fpga_coincidence.py      # FPGA-based detection implementation
 │   └── config.yaml              # Configuration parameters
+├── fpga/
+│   ├── rtl/                     # Verilog RTL source files
+│   │   ├── coincidence_detector.v   # Top-level FPGA module
+│   │   ├── threshold_detector.v     # Threshold comparators
+│   │   ├── coincidence_logic.v      # Coincidence window logic
+│   │   └── axi_lite_regs.v         # AXI register interface
+│   ├── sim/                     # Simulation testbenches
+│   │   └── tb_coincidence_detector.v
+│   ├── scripts/                 # Build scripts
+│   │   └── vivado_synth.tcl    # Vivado synthesis script
+│   ├── constraints/             # Timing constraints
+│   ├── Makefile                # Build system
+│   └── README.md               # FPGA documentation
 ├── scripts/
 │   ├── upload.sh                # Upload code to Red Pitaya
 │   └── run_detector.sh          # Run detector remotely
@@ -357,26 +427,30 @@ This is an educational project for learning about:
 
 - [x] Python-based coincidence detection using SCPI (software mode)
 - [x] FPGA-based coincidence detection framework (hardware mode)
+- [x] Complete FPGA RTL implementation in Verilog
+- [x] FPGA simulation testbench with verification
+- [x] Build system for FPGA synthesis (Vivado and Icarus Verilog)
 - [x] Dual-channel threshold-based pulse detection
 - [x] Configurable coincidence time window
 - [x] Real-time event counting and rate display
 - [x] YAML-based configuration with mode selection
 - [x] Automated upload scripts
-- [x] Comprehensive documentation
+- [x] Comprehensive documentation for both software and FPGA
 
 ## Future Development
 
 Potential enhancements for advanced users:
 
-- [ ] Complete FPGA bitstream implementation with coincidence logic
-- [ ] FPGA bitstream compilation and upload tools
+- [ ] Red Pitaya system integration guide for FPGA bitstream
+- [ ] Python memory-mapped I/O interface for FPGA registers
 - [ ] Data logging to CSV files with timestamps
 - [ ] Pulse height distribution histograms
 - [ ] Web-based monitoring interface
 - [ ] Pulse shape analysis and discrimination
 - [ ] Angular distribution measurements (3+ detectors)
-- [ ] Time-over-threshold measurement
+- [ ] Time-over-threshold measurement in FPGA
 - [ ] Event waveform capture and storage
+- [ ] Timestamp capture with high-resolution counters
 
 ## Resources
 
