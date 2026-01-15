@@ -30,6 +30,11 @@ acquisition:
 
 # Pulse detection settings
 detection:
+  # Detection mode: "software" or "fpga"
+  # - software: Python-based coincidence detection using SCPI (µs timing resolution)
+  # - fpga: FPGA-based coincidence detection for high-precision timing (ns resolution)
+  mode: "software"  # Options: "software", "fpga"
+
   # Voltage threshold for channel A (IN1)
   # Typical scintillator+PMT outputs: 50-500 mV pulses
   # Start with 100 mV and adjust based on your signals
@@ -42,7 +47,7 @@ detection:
   # For cosmic ray muons with ~10 cm detector separation:
   # - Muon velocity ~0.99c → ~0.3 ns/cm
   # - Add electronics jitter and PMT timing spread
-  # - Typical window: 1-10 µs
+  # - Typical window: 1-10 µs (software mode) or 0.01-1 µs (FPGA mode)
   coincidence_window_us: 2.0
 
 # Display settings

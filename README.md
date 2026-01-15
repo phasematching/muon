@@ -56,6 +56,25 @@ The Red Pitaya processes both channels simultaneously, looking for temporal corr
 
 ## Software Architecture
 
+### Detection Modes
+
+This project supports two detection modes:
+
+#### Software Mode (Default)
+- **Timing Resolution**: ~64 ns (depends on decimation setting)
+- **Implementation**: Python-based coincidence detection using SCPI
+- **Advantages**: Easy to configure, no FPGA programming required
+- **Use Case**: General cosmic ray detection, educational experiments
+- **Typical Coincidence Window**: 1-10 µs
+
+#### FPGA Mode (Advanced)
+- **Timing Resolution**: ~8 ns (125 MHz FPGA clock)
+- **Implementation**: Hardware-accelerated coincidence logic in FPGA
+- **Advantages**: Ultra-precise timing, real-time processing, no dead time
+- **Use Case**: High-precision measurements, fast event rates
+- **Typical Coincidence Window**: 10-1000 ns
+- **Requirements**: Custom FPGA bitstream (see [FPGA Setup](#fpga-mode-setup))
+
 ### Signal Processing Pipeline
 
 1. **Acquisition**: Continuous sampling of analog inputs
@@ -130,6 +149,7 @@ nano config.yaml
 
 Important settings to configure:
 
+- **mode**: Detection mode - `"software"` (default) or `"fpga"` (requires FPGA bitstream)
 - **ip_address**: Your Red Pitaya's IP address
 - **threshold_a, threshold_b**: Voltage thresholds for pulse detection (typically 0.1V)
 - **coincidence_window_us**: Time window for coincidences (typically 1-10 µs)
@@ -218,11 +238,86 @@ exit
 # 6. Stop with Ctrl+C when done
 ```
 
+## FPGA Mode Setup
+
+For advanced users requiring high-precision timing (<10 ns resolution), you can enable FPGA-based coincidence detection.
+
+### Requirements
+
+1. Custom FPGA bitstream with coincidence detection logic
+2. FPGA development tools (Vivado or Red Pitaya build system)
+3. Knowledge of FPGA programming (Verilog/VHDL)
+
+### Configuration
+
+To enable FPGA mode, edit `config.yaml`:
+
+```yaml
+detection:
+  mode: "fpga"  # Change from "software" to "fpga"
+  threshold_a: 0.1
+  threshold_b: 0.1
+  coincidence_window_us: 0.1  # Can use much smaller windows in FPGA mode (100 ns)
+```
+
+### Implementation Steps
+
+1. **Design FPGA Logic**: Create Verilog/VHDL modules for:
+   - Dual-channel ADC interface (14-bit, 125 MS/s)
+   - Threshold comparators for each channel
+   - Coincidence detection logic with programmable window
+   - Event counters and AXI/memory-mapped register interface
+
+2. **Register Map**: Implement memory-mapped registers:
+   - Control register (start/stop, reset)
+   - Threshold registers (Channel A, Channel B)
+   - Coincidence window register (in FPGA clock cycles)
+   - Counter registers (events A, events B, coincidences)
+
+3. **Build Bitstream**: Compile your design using Vivado or Red Pitaya build tools
+
+4. **Load to Red Pitaya**: Upload bitstream using FPGA manager
+
+5. **Test**: Run the detector with `mode: "fpga"` in config.yaml
+
+### FPGA Implementation Reference
+
+The FPGA detector interface is defined in `src/fpga_coincidence.py`. Key specifications:
+
+- **FPGA Clock**: 125 MHz (8 ns period)
+- **ADC Resolution**: 14-bit
+- **Voltage Range**: ±1V
+- **Timing Resolution**: ~8 ns minimum
+- **Typical Coincidence Window**: 10-1000 ns (adjustable)
+
+For detailed FPGA implementation guidance, see the documentation in `src/fpga_coincidence.py`.
+
+### Advantages of FPGA Mode
+
+- **Ultra-precise timing**: 8 ns resolution vs. 64+ ns in software mode
+- **Real-time processing**: No acquisition dead time
+- **Higher event rates**: Can handle much faster event rates
+- **Lower coincidence windows**: Enables better noise rejection
+- **Deterministic latency**: Hardware-based processing
+
+### When to Use FPGA Mode
+
+Use FPGA mode when you need:
+- Timing resolution better than 10 ns
+- High event rates (>10 kHz per channel)
+- Narrow coincidence windows (<1 µs)
+- Deterministic, real-time processing
+- Maximum noise rejection
+
+For most educational applications, software mode is sufficient and much easier to set up.
+
 ## Measurement Parameters
 
 ### Key Settings
 
-- **Coincidence window**: Time window for considering events coincident (typical: 10-100 ns)
+- **Coincidence window**: Time window for considering events coincident
+  - Software mode: typical 1-10 µs
+  - FPGA mode: typical 10-1000 ns
 - **Trigger threshold**: Voltage level to identify valid pulses
 - **Sampling rate**: Red Pitaya sampling frequency (125 MS/s max)
 - **Buffer size**: Memory allocated for event storage
@@ -237,7 +332,8 @@ exit
 ```
 muon/
 ├── src/
-│   ├── coincidence_detector.py  # Main detection script
+│   ├── coincidence_detector.py  # Main detection script (software mode)
+│   ├── fpga_coincidence.py      # FPGA-based detection implementation
 │   └── config.yaml              # Configuration parameters
 ├── scripts/
 │   ├── upload.sh                # Upload code to Red Pitaya
@@ -259,11 +355,12 @@ This is an educational project for learning about:
 
 ### Current Features
 
-- [x] Python-based coincidence detection using SCPI
+- [x] Python-based coincidence detection using SCPI (software mode)
+- [x] FPGA-based coincidence detection framework (hardware mode)
 - [x] Dual-channel threshold-based pulse detection
 - [x] Configurable coincidence time window
 - [x] Real-time event counting and rate display
-- [x] YAML-based configuration
+- [x] YAML-based configuration with mode selection
 - [x] Automated upload scripts
 - [x] Comprehensive documentation
 
@@ -271,7 +368,8 @@ This is an educational project for learning about:
 
 Potential enhancements for advanced users:
 
-- [ ] FPGA-based coincidence logic (for <10 ns timing resolution)
+- [ ] Complete FPGA bitstream implementation with coincidence logic
+- [ ] FPGA bitstream compilation and upload tools
 - [ ] Data logging to CSV files with timestamps
 - [ ] Pulse height distribution histograms
 - [ ] Web-based monitoring interface
