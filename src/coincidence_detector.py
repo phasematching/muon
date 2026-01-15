@@ -19,6 +19,7 @@ import yaml
 import os
 import sys
 from datetime import datetime
+from fpga_coincidence import FPGACoincidenceDetector
 
 
 class RedPitayaSCPI:
@@ -190,6 +191,7 @@ class CoincidenceDetector:
                 'voltage_range': 1.0
             },
             'detection': {
+                'mode': 'software',
                 'threshold_a': 0.1,
                 'threshold_b': 0.1,
                 'coincidence_window_us': 2.0
@@ -398,9 +400,33 @@ def main():
         script_dir = os.path.dirname(os.path.abspath(__file__))
         config_file = os.path.join(script_dir, 'config.yaml')
 
-    # Create and run detector
-    detector = CoincidenceDetector(config_file)
-    detector.run()
+    # Load configuration to check mode
+    if os.path.exists(config_file):
+        with open(config_file, 'r') as f:
+            config = yaml.safe_load(f)
+    else:
+        print(f"Warning: Config file {config_file} not found, using software mode")
+        config = {'detection': {'mode': 'software'}}
+
+    # Get detection mode
+    detection_mode = config.get('detection', {}).get('mode', 'software')
+
+    print(f"Starting coincidence detector in {detection_mode.upper()} mode\n")
+
+    # Create and run appropriate detector
+    if detection_mode.lower() == 'fpga':
+        # FPGA mode: use hardware-accelerated coincidence detection
+        detector = CoincidenceDetector(config_file)
+        if not detector.initialize():
+            print("Failed to initialize Red Pitaya connection")
+            return
+
+        fpga_detector = FPGACoincidenceDetector(detector.rp, detector.config)
+        fpga_detector.run()
+    else:
+        # Software mode: use Python-based coincidence detection
+        detector = CoincidenceDetector(config_file)
+        detector.run()
 
 
 if __name__ == '__main__':
